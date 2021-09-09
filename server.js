@@ -1,47 +1,73 @@
-import express from 'express'
-import mongoose from 'mongoose';
-import ejs from 'ejs';
-import path from 'path';
-import multer from 'multer';
-
-// set Storage Engine
+import express from "express";
+import mongoose from "mongoose";
+import ejs from "ejs";
+import path from "path";
+import multer from "multer";
 
 const storage = multer.diskStorage({
-  destination:'./public/uploads/',
-  filename: function (req, file, cb){
-    cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
+  destination: './public/uploads/',
+  filename: function(req, file, cb){
+    cb(null,file.fieldname + '-' + Date.now() + path.extname(file.originalname));
   }
 });
 
+// Init Upload
 const upload = multer({
-  storage: storage
+  storage: storage,
+  limits:{fileSize: 1000000},
+  fileFilter: function(req, file, cb){
+    checkFileType(file, cb);
+  }
 }).single('myImage');
 
+// Check File Type
+function checkFileType(file, cb){
+  // Allowed ext
+  const filetypes = /jpeg|jpg|png|gif/;
+  // Check ext
+  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+  // Check mime
+  const mimetype = filetypes.test(file.mimetype);
 
+  if(mimetype && extname){
+    return cb(null,true);
+  } else {
+    cb('Error: Images Only!');
+  }
+}
+
+// Init app
 const app = express();
 
-app.set("view engine", 'ejs');
+// EJS
+app.set('view engine', 'ejs');
 
+// Public Folder
 app.use(express.static('./public'));
 
-app.get("/", (req, res)=>{
-  res.render("Index")
+app.get('/', (req, res) => res.render('Index'));
+
+app.post('/upload', (req, res) => {
+  upload(req, res, (err) => {
+    if(err){
+      res.render('Index', {
+        msg: err
+      });
+    } else {
+      if(req.file == undefined){
+        res.render('Index', {
+          msg: 'Error: No File Selected!'
+        });
+      } else {
+        res.render('Index', {
+          msg: 'File Uploaded!',
+          file: `uploads/${req.file.filename}`
+        });
+      }
+    }
+  });
 });
 
-app.post("/upload", (req, res)=>{
-  upload(req, res, (err)=>{
-     if(err){
-       res.render("Index", {
-         msg: err
-       })
-     }else{
-       console.log(req.file);
-       res.send('test')
-     }
-  })
-});
+const port = 3000;
 
-
-app.listen(4000, ()=>{
-  console.log('the server is up at port 4000')
-})
+app.listen(port, () => console.log(`Server started on port ${port}`));
