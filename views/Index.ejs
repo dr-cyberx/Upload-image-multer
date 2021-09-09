@@ -12,7 +12,7 @@
       <h1>File Upload</h1>
 
       <%= typeof msg != 'undefined'? msg: '' %>
-      <form action="/upload" method="POST">
+      <form action="/upload" method="POST" enctype="multipart/form-data">
         <input name="myImage" type="file" />
         <input  type="text" />
 
